@@ -1,0 +1,23 @@
+{
+  "_comment": "Copy this to joyory_source.json after running scripts/discover_joyory.py",
+  "base_url": "https://joyory.com",
+  "adapter": "api",
+  "search": {
+    "method": "GET",
+    "url": "/api/products/search",
+    "query_parameters": {
+      "query": "q",
+      "limit": "limit",
+      "page": "page"
+    }
+  },
+  "product_details": {
+    "method": "GET",
+    "url_template": "/api/products/{id}"
+  },
+  "discovered_at": null,
+  "confidence": {
+    "search": 0,
+    "product": 0
+  }
+}

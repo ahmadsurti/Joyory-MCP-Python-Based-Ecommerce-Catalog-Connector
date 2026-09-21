@@ -1,0 +1,1 @@
+"""Joyory API discovery module."""

@@ -1,0 +1,74 @@
+{
+  "base_url": "https://beauty.joyory.com",
+  "adapter": "api",
+  "discovered_at": "2026-09-20T00:00:00Z",
+  "notes": "API discovered from Joyory JS bundle. beauty.joyory.com is the backend API host. No auth required for public product catalog.",
+  "search": {
+    "method": "GET",
+    "url": "/api/user/products/all",
+    "query_parameters": {
+      "query": "search",
+      "limit": "limit",
+      "page": "cursor",
+      "min_price": "minPrice",
+      "max_price": "maxPrice",
+      "brand": "brandIds",
+      "category": "categoryIds"
+    },
+    "_full_url_example": "https://beauty.joyory.com/api/user/products/all?search=lipstick&limit=10"
+  },
+  "product_details": {
+    "method": "GET",
+    "url_template": "/api/user/products/{id}",
+    "_example_url": "https://beauty.joyory.com/api/user/products/6a605e236325869f0ac3b497"
+  },
+  "categories": {
+    "method": "GET",
+    "url": "/api/user/categories/tree",
+    "_notes": "Returns full category tree with subCategories. No auth required."
+  },
+  "brands": {
+    "method": "GET",
+    "url": "/api/user/brands",
+    "_notes": "Returns array of {_id, name, slug, description, count}. count = product count."
+  },
+  "reviews": {
+    "method": "GET",
+    "url_template": "/api/reviews/product/{id}",
+    "query_parameters": {"limit": "limit", "page": "page"},
+    "_response_schema": {"total": "int", "page": "int", "limit": "int", "reviews": "array"},
+    "_example_url": "https://beauty.joyory.com/api/reviews/product/6a605e236325869f0ac3b497?limit=10&page=1"
+  },
+  "promotions": {
+    "method": "GET",
+    "url": "/api/user/promotions/active",
+    "query_parameters": {"section": "section"},
+    "_sections": ["offers", "product", "banner"],
+    "_example_url": "https://beauty.joyory.com/api/user/promotions/active?section=offers",
+    "_notes": "Returns array of promotion objects. section=offers for coupons/deals."
+  },
+  "schema": {
+    "product_id_field": "_id",
+    "product_list_field": "products",
+    "pagination_field": "pagination",
+    "cursor_field": "nextCursor",
+    "notes": [
+      "Products use MongoDB _id as stable identifier.",
+      "Variants have images[] and shadeName (used for both shade names AND sizes like '50 ml').",
+      "howToUse is an array of strings.",
+      "ingredients is an array — may be full INCI list OR short marketing list (e.g. '10% Vitamin C').",
+      "avgRating=0 + totalRatings=0 means no reviews — not a bad rating.",
+      "Cart is fully client-side and auth-gated: no shareable cart URL exists.",
+      "Product page URL pattern: https://joyory.com/product/{slug} or /product/{slug}?variant={sku}",
+      "SKUs are NOT globally unique — same SKU number (e.g. 12) can appear on different products."
+    ]
+  },
+  "confidence": {
+    "search": 97,
+    "product": 95,
+    "categories": 99,
+    "brands": 99,
+    "reviews": 98,
+    "promotions": 98
+  }
+}

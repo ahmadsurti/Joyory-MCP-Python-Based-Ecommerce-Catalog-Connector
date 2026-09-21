@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.env
+.venv
+venv/
+env/
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+artifacts/discovery/json_responses/*.json
+artifacts/discovery/screenshots/*.png
+artifacts/discovery/network.log
+artifacts/discovery/api_candidates.json
+# joyory_source.json is intentionally committed — Render needs it at startup.
+# To regenerate: python scripts/discover_joyory.py
+*.log

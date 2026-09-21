@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joyory MCP — Pitch</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f0c0a;
+    --cream: #faf7f2;
+    --gold: #c9993a;
+    --gold-light: #e8c97a;
+    --blush: #e8d5c4;
+    --muted: #7a6f67;
+    --accent: #c9993a;
+  }
+
+  html, body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 0;
+    background: var(--cream);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,153,58,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .page::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,213,196,0.5) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 36px 48px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .logo-area h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--cream);
+  }
+  .logo-area h1 span { color: var(--gold-light); }
+  .logo-area .sub {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(250,247,242,0.5);
+    margin-top: 6px;
+  }
+
+  .badge-stack { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+  .badge {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid rgba(201,153,58,0.4);
+    color: var(--gold-light);
+    border-radius: 2px;
+  }
+
+  .tagline {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 400;
+    font-style: italic;
+    color: rgba(250,247,242,0.75);
+    border-left: 2px solid var(--gold);
+    padding-left: 14px;
+    max-width: 480px;
+  }
+
+  .body { padding: 32px 48px; }
+
+  .section { margin-bottom: 28px; }
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+  p { color: #3a3330; font-size: 12.5px; line-height: 1.7; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin: 28px 0;
+    opacity: 0.4;
+  }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+    flex-wrap: nowrap;
+  }
+  .flow-step { flex: 1; text-align: center; }
+  .flow-bubble {
+    background: var(--ink);
+    color: var(--cream);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 8px 6px;
+    border-radius: 4px;
+    line-height: 1.3;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flow-bubble.gold { background: var(--gold); color: var(--ink); font-weight: 700; }
+  .flow-arrow { font-size: 14px; color: var(--gold); padding: 0 4px; flex-shrink: 0; }
+
+  .stat-strip {
+    background: var(--ink);
+    border-radius: 8px;
+    padding: 18px 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--gold-light);
+    display: block;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(250,247,242,0.5);
+    margin-top: 4px;
+    display: block;
+  }
+
+  .tool-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .tool-table th {
+    background: var(--ink);
+    color: var(--gold-light);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .tool-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(201,153,58,0.15);
+    color: #3a3330;
+    vertical-align: top;
+  }
+  .tool-table tr:last-child td { border-bottom: none; }
+  .tool-table tr:nth-child(even) td { background: rgba(201,153,58,0.04); }
+  .tool-name { font-family: monospace; font-weight: 600; font-size: 11px; color: var(--ink); }
+
+  .challenge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+  .challenge-box {
+    background: #fff8f5;
+    border-left: 3px solid #e07060;
+    padding: 10px 12px;
+    border-radius: 0 4px 4px 0;
+  }
+  .solution-box {
+    background: #f5faf5;
+    border-left: 3px solid #5aaa6a;
+    padding: 10px 12px;
+    border-radius: 0 4px 4px 0;
+  }
+  .box-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .challenge-box .box-label { color: #c05040; }
+  .solution-box .box-label { color: #4a9a5a; }
+  .box-text { font-size: 11px; color: #3a3330; line-height: 1.5; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    font-size: 10px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(201,153,58,0.4);
+    color: var(--muted);
+    background: white;
+  }
+  .chip.active { background: var(--ink); color: var(--gold-light); border-color: var(--ink); }
+
+  .footer {
+    background: var(--ink);
+    color: rgba(250,247,242,0.5);
+    padding: 16px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    position: relative;
+  }
+  .footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  }
+  .footer strong { color: var(--gold-light); }
+
+  @media print {
+    body { background: var(--cream); }
+    .page { margin: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-area">
+        <h1>Joyory <span>MCP</span></h1>
+        <div class="sub">Model Context Protocol · Beauty Intelligence</div>
+      </div>
+      <div class="badge-stack">
+        <div class="badge">Task 01 · Future of Beauty</div>
+        <div class="badge">Task 02 · Smart Shopping</div>
+        <div class="badge">Task 03 · Customer Engagement</div>
+      </div>
+    </div>
+    <div class="tagline">
+      "What if every Joyory product could be discovered through a natural conversation with AI?"
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="section">
+      <div class="section-label">The Problem</div>
+      <div class="section-title">Beauty shopping is broken by information overload</div>
+      <p>A customer buying a vitamin C serum needs to compare ingredients, ratings, skin type compatibility, and price — across multiple products, across multiple browser tabs, entirely on their own. The current search-scroll-click-read loop is high friction and high abandonment. Customers don't leave because the product is wrong. They leave because the <em>experience</em> failed them.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-label">The Solution</div>
+      <div class="section-title">Joyory's catalog as a conversational AI tool</div>
+      <p>Joyory MCP is a live product intelligence server that connects Claude AI directly to Joyory's product database using the Model Context Protocol — the new open standard for AI tool integration.</p>
+      <div class="flow" style="margin-top:18px;">
+        <div class="flow-step"><div class="flow-bubble">"Find me a vitamin C serum under ₹800"</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="flow-bubble gold">Claude AI</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="flow-bubble">Joyory MCP Server</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="flow-bubble">beauty.joyory.com API</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="flow-bubble gold">Intelligent Response</div></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="stat-strip">
+      <div class="stat"><span class="stat-num">2</span><span class="stat-label">MCP Tools</span></div>
+      <div class="stat"><span class="stat-num">69</span><span class="stat-label">Tests Passing</span></div>
+      <div class="stat"><span class="stat-num">97%</span><span class="stat-label">API Confidence</span></div>
+      <div class="stat"><span class="stat-num">680+</span><span class="stat-label">Live Products</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-label">The Tools</div>
+      <div class="section-title">Two precision instruments for product intelligence</div>
+      <table class="tool-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>What it does</th>
+            <th>Example prompt that triggers it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tool-name">search_products</span></td>
+            <td>Searches Joyory's live catalog by query, price range, and brand. Returns compact summaries.</td>
+            <td><em>"Find me 5 lipsticks under ₹500"</em></td>
+          </tr>
+          <tr>
+            <td><span class="tool-name">get_product_details</span></td>
+            <td>Retrieves full product data — ingredients, how-to-use, variants, stock status, images.</td>
+            <td><em>"Tell me the ingredients of the second one"</em></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-label">Key Engineering Insight</div>
+      <div class="section-title">We didn't guess the API — we discovered it</div>
+      <p>Joyory is a React SPA. Every URL returns the same HTML. There is no public API documentation. Rather than guessing, we built an automated discovery engine using Playwright that analyzes real browser behavior, scores 102 API candidates found inside Joyory's JS bundle, and auto-generates the server configuration. This is how we found the real API host: <strong>beauty.joyory.com</strong>.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-label">Challenges & Solutions</div>
+      <div class="section-title">What we hit and how we solved it</div>
+
+      <div class="challenge-row">
+        <div class="challenge-box">
+          <div class="box-label">Challenge</div>
+          <div class="box-text">No public API. Every URL returns HTML. 16 guessed endpoints all failed.</div>
+        </div>
+        <div class="solution-box">
+          <div class="box-label">Solution</div>
+          <div class="box-text">Built a Playwright discovery engine that reads Joyory's own JS bundle to find the real API.</div>
+        </div>
+      </div>
+
+      <div class="challenge-row">
+        <div class="challenge-box">
+          <div class="box-label">Challenge</div>
+          <div class="box-text">MCP SDK v2 renamed core classes. All online examples were for v1 and silently broken.</div>
+        </div>
+        <div class="solution-box">
+          <div class="box-label">Solution</div>
+          <div class="box-text">Inspected the installed package directly to discover the real v2 API surface.</div>
+        </div>
+      </div>
+
+      <div class="challenge-row">
+        <div class="challenge-box">
+          <div class="box-label">Challenge</div>
+          <div class="box-text">ngrok's human-verification page blocked all Claude API requests entirely.</div>
+        </div>
+        <div class="solution-box">
+          <div class="box-label">Solution</div>
+          <div class="box-text">Switched to Cloudflare Tunnel — no account, no interstitial, clean HTTPS in 60 seconds.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-label">Future Scope</div>
+      <div class="section-title">Built to grow</div>
+      <p>The adapter architecture makes adding new capabilities straightforward. The MCP protocol means the same server can power Claude, any future AI assistant, or a custom voice interface — with zero server changes.</p>
+      <div class="chips">
+        <div class="chip active">✓ search_products</div>
+        <div class="chip active">✓ get_product_details</div>
+        <div class="chip">list_categories</div>
+        <div class="chip">list_brands</div>
+        <div class="chip">compare_products</div>
+        <div class="chip">Skin profile filtering</div>
+        <div class="chip">Routine builder</div>
+        <div class="chip">Review summaries</div>
+        <div class="chip">Voice interface</div>
+        <div class="chip">Persistent user context</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div><strong>Joyory MCP</strong> · AI-Powered Conversational Shopping</div>
+    <div>Hackathon 2026 · Task 01 / 02 / 03</div>
+    <div>beauty.joyory.com · MCP 2.x · Python 3.14</div>
+  </div>
+
+</div>
+</body>
+</html>

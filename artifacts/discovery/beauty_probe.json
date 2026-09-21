@@ -1,0 +1,145 @@
+[
+  {
+    "url": "https://beauty.joyory.com/api/user/products/all",
+    "path": "/api/user/products/all",
+    "status": 200,
+    "products": 9,
+    "data_keys": [
+      "titleMessage",
+      "products",
+      "filters",
+      "appliedFilters",
+      "trendingCategories",
+      "bannerImage",
+      "pagination",
+      "message"
+    ],
+    "sample_product_keys": [
+      "_id",
+      "name",
+      "slugs",
+      "category",
+      "categories",
+      "categoryHierarchy",
+      "brand",
+      "skinTypes",
+      "formulation",
+      "price"
+    ]
+  },
+  {
+    "url": "https://beauty.joyory.com/api/user/products/all?limit=5",
+    "path": "/api/user/products/all?limit=5",
+    "status": 200,
+    "products": 5,
+    "data_keys": [
+      "titleMessage",
+      "products",
+      "filters",
+      "appliedFilters",
+      "trendingCategories",
+      "bannerImage",
+      "pagination",
+      "message"
+    ],
+    "sample_product_keys": [
+      "_id",
+      "name",
+      "slugs",
+      "category",
+      "categories",
+      "categoryHierarchy",
+      "brand",
+      "skinTypes",
+      "formulation",
+      "price"
+    ]
+  },
+  {
+    "url": "https://beauty.joyory.com/api/user/products/all?q=lipstick&limit=5",
+    "path": "/api/user/products/all?q=lipstick&limit=5",
+    "status": 200,
+    "products": 5,
+    "data_keys": [
+      "titleMessage",
+      "products",
+      "filters",
+      "appliedFilters",
+      "trendingCategories",
+      "bannerImage",
+      "pagination",
+      "message"
+    ],
+    "sample_product_keys": [
+      "_id",
+      "name",
+      "slugs",
+      "category",
+      "categories",
+      "categoryHierarchy",
+      "brand",
+      "skinTypes",
+      "formulation",
+      "price"
+    ]
+  },
+  {
+    "url": "https://beauty.joyory.com/api/user/products/all?search=lipstick&limit=5",
+    "path": "/api/user/products/all?search=lipstick&limit=5",
+    "status": 200,
+    "products": 5,
+    "data_keys": [
+      "titleMessage",
+      "products",
+      "filters",
+      "appliedFilters",
+      "trendingCategories",
+      "bannerImage",
+      "pagination",
+      "message"
+    ],
+    "sample_product_keys": [
+      "_id",
+      "name",
+      "slugs",
+      "category",
+      "categories",
+      "categoryHierarchy",
+      "brand",
+      "skinTypes",
+      "formulation",
+      "price"
+    ]
+  },
+  {
+    "url": "https://beauty.joyory.com/api/user/categories/tree",
+    "path": "/api/user/categories/tree",
+    "status": 200,
+    "products": 0,
+    "data_keys": [
+      "array"
+    ],
+    "sample_product_keys": []
+  },
+  {
+    "url": "https://beauty.joyory.com/api/user/brands",
+    "path": "/api/user/brands",
+    "status": 200,
+    "products": 0,
+    "data_keys": [
+      "array"
+    ],
+    "sample_product_keys": []
+  },
+  {
+    "url": "https://beauty.joyory.com/api/user/products/top-categories",
+    "path": "/api/user/products/top-categories",
+    "status": 200,
+    "products": 0,
+    "data_keys": [
+      "success",
+      "categories"
+    ],
+    "sample_product_keys": []
+  }
+]

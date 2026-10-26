@@ -9,6 +9,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode
 
 # Vercel bundles files relative to the function. Add src/ to path.
 _HERE = Path(__file__).resolve().parent          # /var/task/api/
@@ -42,13 +43,59 @@ _raw_app = mcp.streamable_http_app(
     ),
 )
 
+# ---------------------------------------------------------------------------
+# Path recovery
+#
+# Every public URL is rewritten to /api/index.py, and the ASGI scope then
+# carries scope["path"] == "/api/index.py" -- the ORIGINAL path is gone.
+# Mapping that to "/" (the old behaviour) sent POST /mcp to the landing-page
+# route, which only allows GET/HEAD, hence "405 allow: GET, HEAD".
+#
+# Fix: each rewrite in vercel.json appends ?route=<logical path> to its
+# destination, and we read it back here. If the marker is missing for any
+# reason we fall back on the method: GET/HEAD -> "/", anything else -> "/mcp"
+# (the landing page can't serve those methods, so they can only be MCP).
+# ---------------------------------------------------------------------------
+_ENTRY_PATHS = {"/api", "/api/", "/api/index", "/api/index.py"}
+
+
+def _resolve_route(scope: dict) -> tuple[str, bytes]:
+    """Return (logical_path, query_string_without_marker)."""
+    path = scope.get("path") or "/"
+    method = scope.get("method", "GET").upper()
+    raw_qs = scope.get("query_string", b"") or b""
+
+    if path not in _ENTRY_PATHS:
+        # Not a Vercel entry path (e.g. local uvicorn): only strip a /api prefix.
+        if path.startswith("/api/"):
+            path = path[4:]
+        return path, raw_qs
+
+    route = None
+    rest: list[tuple[str, str]] = []
+    for k, v in parse_qsl(raw_qs.decode("latin1"), keep_blank_values=True):
+        if k == "route" and route is None:
+            route = v
+        else:
+            rest.append((k, v))
+    clean_qs = urlencode(rest).encode("latin1")
+
+    if route is not None:
+        route = route.strip("/")
+        if route in ("index", "index.py"):
+            route = ""
+        return "/" + route, clean_qs
+
+    # No marker: decide by method (see comment above).
+    return ("/" if method in ("GET", "HEAD") else "/mcp"), clean_qs
+
 
 class LifespanEnsuringASGI:
     """
     Vercel's Python runtime does NOT send ASGI lifespan events (startup/shutdown).
     The MCP StreamableHTTPSessionManager requires its task group to be running
     before it can handle any requests. This wrapper bootstraps the lifespan on the
-    very first /mcp request, transparently and thread-safely.
+    first /mcp request and recovers the original request path from Vercel's rewrite.
     It also handles CORS preflights and direct probes from Claude.ai.
     """
 
@@ -56,20 +103,39 @@ class LifespanEnsuringASGI:
         self.inner_app = inner_app
         self._lifespan_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event | None = None
-        self._lock = asyncio.Lock()
+        self._lock: asyncio.Lock | None = None   # created lazily, inside the running loop
         self._initialized = False
 
+    @staticmethod
+    def _manager():
+        return getattr(mcp._lowlevel_server, "_session_manager", None)
+
+    def _running(self) -> bool:
+        mgr = self._manager()
+        return mgr is not None and getattr(mgr, "_task_group", None) is not None
+
     async def _ensure_lifespan(self) -> None:
-        session_mgr = getattr(mcp._lowlevel_server, "_session_manager", None)
-        if session_mgr is not None and getattr(session_mgr, "_task_group", None) is not None:
+        if self._running():
             return
 
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+
         async with self._lock:
-            if session_mgr is not None and getattr(session_mgr, "_task_group", None) is not None:
+            if self._running():
                 return
+
+            # If a previous lifespan task died (e.g. the runtime recycled the
+            # event loop between invocations) the manager is stopped but still
+            # marked "started", and run() would refuse to start again and hang
+            # us here. Its task group is gone, so re-arming it is safe.
+            mgr = self._manager()
+            if mgr is not None and getattr(mgr, "_has_started", False):
+                mgr._has_started = False
 
             self._shutdown_event = asyncio.Event()
             started = asyncio.Event()
+            failure: list[str] = []
             is_first = True
 
             async def receive():
@@ -81,13 +147,31 @@ class LifespanEnsuringASGI:
                 return {"type": "lifespan.shutdown"}
 
             async def send(msg: dict):
-                if msg.get("type") == "lifespan.startup.complete":
+                t = msg.get("type")
+                if t == "lifespan.startup.complete":
+                    started.set()
+                elif t == "lifespan.startup.failed":
+                    failure.append(msg.get("message", "lifespan startup failed"))
                     started.set()
 
-            self._lifespan_task = asyncio.create_task(
+            task = asyncio.create_task(
                 self.inner_app({"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send)
             )
-            await started.wait()
+            # If the task dies before signalling, don't wait forever.
+            task.add_done_callback(lambda _t: started.set())
+            self._lifespan_task = task
+
+            try:
+                await asyncio.wait_for(started.wait(), timeout=10)
+            except asyncio.TimeoutError:
+                task.cancel()
+                raise RuntimeError("MCP lifespan did not start within 10s")
+
+            if failure:
+                raise RuntimeError(f"MCP lifespan startup failed: {failure[0]}")
+            if task.done():
+                exc = None if task.cancelled() else task.exception()
+                raise RuntimeError(f"MCP lifespan task exited during startup: {exc!r}")
             self._initialized = True
 
     async def close(self) -> None:
@@ -102,80 +186,83 @@ class LifespanEnsuringASGI:
         self._lifespan_task = None
         self._shutdown_event = None
         self._initialized = False
-        session_mgr = getattr(mcp._lowlevel_server, "_session_manager", None)
-        if session_mgr is not None:
-            session_mgr._task_group = None
+        mgr = self._manager()
+        if mgr is not None:
+            mgr._task_group = None
+
+    async def _respond(self, send, status: int, body: bytes, headers=None, head_only=False):
+        hdrs = [[b"content-length", str(len(body)).encode()]] + (headers or [])
+        await send({"type": "http.response.start", "status": status, "headers": hdrs})
+        await send({"type": "http.response.body", "body": b"" if head_only else body, "more_body": False})
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":
             await self.inner_app(scope, receive, send)
             return
 
-        if scope["type"] == "http":
-            path = scope.get("path", "")
-            method = scope.get("method", "GET").upper()
-
-            # Normalize path if prefixed by /api or file path
-            if path in ("/api", "/api/", "/api/index", "/api/index.py"):
-                path = "/"
-                scope["path"] = "/"
-            elif path.startswith("/api/"):
-                path = path[4:]
-                scope["path"] = path
-
-            # Handle CORS preflight for any route
-            if method == "OPTIONS":
-                await send({
-                    "type": "http.response.start",
-                    "status": 204,
-                    "headers": [
-                        [b"access-control-allow-origin", b"*"],
-                        [b"access-control-allow-methods", b"GET, POST, OPTIONS, HEAD"],
-                        [b"access-control-allow-headers", b"*"],
-                    ],
-                })
-                await send({"type": "http.response.body", "body": b"", "more_body": False})
-                return
-
-            # Diagnostic endpoint to inspect exact ASGI scope received from Vercel
-            if path in ("/debug", "/api/debug"):
-                hdrs = {k.decode("latin1"): v.decode("latin1") for k, v in scope.get("headers", [])}
-                dbg = {
-                    "original_scope_path": scope.get("path"),
-                    "raw_path": scope.get("raw_path", b"").decode("latin1", errors="ignore"),
-                    "method": method,
-                    "headers": hdrs,
-                }
-                body = json.dumps(dbg, indent=2).encode()
-                await send({"type": "http.response.start", "status": 200, "headers": [
-                    [b"content-type", b"application/json"],
-                    [b"content-length", str(len(body)).encode()],
-                ]})
-                await send({"type": "http.response.body", "body": body, "more_body": False})
-                return
-
-            # Direct response for GET/HEAD /mcp probe (Claude.ai connector verification)
-            if path == "/mcp" and method in ("GET", "HEAD"):
-                body = (
-                    b'{"server":"Joyory Product Catalog MCP","version":"2.0",'
-                    b'"transport":"streamable-http","protocol":"MCP 2.x","auth":"none",'
-                    b'"endpoint":"/mcp","methods":["POST","GET","OPTIONS","HEAD"]}'
-                )
-                headers = [
-                    [b"content-type", b"application/json"],
-                    [b"content-length", str(len(body)).encode()],
-                    [b"access-control-allow-origin", b"*"],
-                ]
-                await send({"type": "http.response.start", "status": 200, "headers": headers})
-                await send({"type": "http.response.body", "body": b"" if method == "HEAD" else body, "more_body": False})
-                return
-
-            # Ensure lifespan is running for MCP POST JSON-RPC requests
-            if path == "/mcp" or path.startswith("/mcp/"):
-                await self._ensure_lifespan()
-
+        if scope["type"] != "http":
             await self.inner_app(scope, receive, send)
             return
+
+        method = scope.get("method", "GET").upper()
+        raw_path = scope.get("path", "")
+        raw_qs = scope.get("query_string", b"") or b""
+
+        # Recover the real path BEFORE anything else looks at it.
+        path, clean_qs = _resolve_route(scope)
+
+        # Diagnostic endpoint: /debug, or ANY url with ?debug=1 (works even if
+        # the rewrite marker is being dropped, since the original query survives).
+        if path == "/debug" or b"debug=1" in raw_qs:
+            hdrs = {k.decode("latin1"): v.decode("latin1") for k, v in scope.get("headers", [])}
+            dbg = {
+                "scope_path_from_vercel": raw_path,
+                "scope_raw_path": (scope.get("raw_path") or b"").decode("latin1", errors="ignore"),
+                "scope_query_string": raw_qs.decode("latin1"),
+                "resolved_path": path,
+                "method": method,
+                "headers": hdrs,
+            }
+            await self._respond(
+                send, 200, json.dumps(dbg, indent=2).encode(),
+                [[b"content-type", b"application/json"]],
+            )
+            return
+
+        # Handle CORS preflight for any route
+        if method == "OPTIONS":
+            await send({
+                "type": "http.response.start",
+                "status": 204,
+                "headers": [
+                    [b"access-control-allow-origin", b"*"],
+                    [b"access-control-allow-methods", b"GET, POST, DELETE, OPTIONS, HEAD"],
+                    [b"access-control-allow-headers", b"*"],
+                ],
+            })
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+            return
+
+        # Direct response for GET/HEAD /mcp probe (Claude.ai connector verification)
+        if path == "/mcp" and method in ("GET", "HEAD"):
+            body = (
+                b'{"server":"Joyory Product Catalog MCP","version":"2.0",'
+                b'"transport":"streamable-http","protocol":"MCP 2.x","auth":"none",'
+                b'"endpoint":"/mcp","methods":["POST","GET","OPTIONS","HEAD"]}'
+            )
+            await self._respond(
+                send, 200, body,
+                [[b"content-type", b"application/json"], [b"access-control-allow-origin", b"*"]],
+                head_only=(method == "HEAD"),
+            )
+            return
+
+        # Hand Starlette a scope whose path is the REAL path (copy, don't mutate).
+        scope = {**scope, "path": path, "raw_path": path.encode(), "query_string": clean_qs}
+
+        # Ensure lifespan is running for MCP JSON-RPC requests
+        if path == "/mcp" or path.startswith("/mcp/"):
+            await self._ensure_lifespan()
 
         await self.inner_app(scope, receive, send)
 

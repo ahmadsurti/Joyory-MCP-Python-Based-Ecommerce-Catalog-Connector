@@ -7,29 +7,11 @@
     }
   },
   "rewrites": [
-    {
-      "source": "/mcp",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/mcp/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/health",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/debug",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/",
-      "destination": "/api/index.py"
-    }
+    { "source": "/mcp", "destination": "/api/index.py?route=mcp" },
+    { "source": "/mcp/:path*", "destination": "/api/index.py?route=mcp/:path*" },
+    { "source": "/health", "destination": "/api/index.py?route=health" },
+    { "source": "/debug", "destination": "/api/index.py?route=debug" },
+    { "source": "/api/:path*", "destination": "/api/index.py?route=:path*" },
+    { "source": "/", "destination": "/api/index.py?route=" }
   ]
 }

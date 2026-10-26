@@ -242,6 +242,34 @@ async def health_endpoint(request: Request):
     })
 
 
+@mcp.custom_route("/mcp", methods=["GET"])
+async def mcp_probe_endpoint(request: Request):
+    """
+    Responds to GET /mcp probes from Claude.ai and other MCP clients.
+
+    The MCP Streamable HTTP transport only handles POST on /mcp.
+    Claude's connector setup wizard does a GET probe to check whether the
+    server requires auth — a 404 makes it think auth is needed.
+    Returning 200 here tells Claude: "server is reachable, no auth required."
+    """
+    return JSONResponse(
+        {
+            "server": "Joyory Product Catalog MCP",
+            "version": "2.0",
+            "transport": "streamable-http",
+            "protocol": "MCP 2.x",
+            "auth": "none",
+            "endpoint": "/mcp",
+            "methods": ["POST"],
+            "note": "Send MCP JSON-RPC requests via POST to this endpoint.",
+        },
+        status_code=200,
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+
+
 @mcp.custom_route("/", methods=["GET", "HEAD"])
 async def root_endpoint(request: Request):
     if "text/html" in request.headers.get("accept", ""):

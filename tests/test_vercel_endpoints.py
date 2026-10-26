@@ -72,3 +72,31 @@ async def test_mcp_initialize_and_tools_list(client):
     assert tools_resp.status_code == 200
     assert "search_products" in tools_resp.text
     assert "get_catalog_overview" in tools_resp.text
+
+
+@pytest.mark.asyncio
+async def test_mcp_get_probe_and_options(client):
+    # GET /mcp probe for Claude.ai
+    resp = await client.get("/mcp")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["auth"] == "none"
+    assert resp.headers.get("access-control-allow-origin") == "*"
+
+    # OPTIONS /mcp for CORS preflight
+    options_resp = await client.options("/mcp")
+    assert options_resp.status_code == 204
+    assert options_resp.headers.get("access-control-allow-origin") == "*"
+
+
+@pytest.mark.asyncio
+async def test_api_prefix_normalization(client):
+    # Tests that /api/health and /api/mcp resolve through path normalization
+    resp = await client.get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "healthy"
+
+    probe = await client.get("/api/mcp")
+    assert probe.status_code == 200
+    assert probe.json()["auth"] == "none"
+

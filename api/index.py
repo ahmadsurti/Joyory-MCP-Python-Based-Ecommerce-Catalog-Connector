@@ -6,6 +6,7 @@ We add the bundled src/ directory to sys.path so joyory_mcp is importable.
 """
 from __future__ import annotations
 import asyncio
+import json
 import sys
 from pathlib import Path
 
@@ -48,21 +49,23 @@ class LifespanEnsuringASGI:
     The MCP StreamableHTTPSessionManager requires its task group to be running
     before it can handle any requests. This wrapper bootstraps the lifespan on the
     very first /mcp request, transparently and thread-safely.
+    It also handles CORS preflights and direct probes from Claude.ai.
     """
 
     def __init__(self, inner_app):
         self.inner_app = inner_app
         self._lifespan_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event | None = None
-        self._started = asyncio.Event()
         self._lock = asyncio.Lock()
         self._initialized = False
 
     async def _ensure_lifespan(self) -> None:
-        if self._initialized:
+        session_mgr = getattr(mcp._lowlevel_server, "_session_manager", None)
+        if session_mgr is not None and getattr(session_mgr, "_task_group", None) is not None:
             return
+
         async with self._lock:
-            if self._initialized:
+            if session_mgr is not None and getattr(session_mgr, "_task_group", None) is not None:
                 return
 
             self._shutdown_event = asyncio.Event()
@@ -97,7 +100,11 @@ class LifespanEnsuringASGI:
             except Exception:
                 pass
         self._lifespan_task = None
+        self._shutdown_event = None
         self._initialized = False
+        session_mgr = getattr(mcp._lowlevel_server, "_session_manager", None)
+        if session_mgr is not None:
+            session_mgr._task_group = None
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":
@@ -106,8 +113,50 @@ class LifespanEnsuringASGI:
 
         if scope["type"] == "http":
             path = scope.get("path", "")
+            method = scope.get("method", "GET").upper()
+
+            # Normalize path if prefixed by /api or file path
+            if path in ("/api", "/api/", "/api/index", "/api/index.py"):
+                path = "/"
+                scope["path"] = "/"
+            elif path.startswith("/api/"):
+                path = path[4:]
+                scope["path"] = path
+
+            # Handle CORS preflight for any route
+            if method == "OPTIONS":
+                await send({
+                    "type": "http.response.start",
+                    "status": 204,
+                    "headers": [
+                        [b"access-control-allow-origin", b"*"],
+                        [b"access-control-allow-methods", b"GET, POST, OPTIONS, HEAD"],
+                        [b"access-control-allow-headers", b"*"],
+                    ],
+                })
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
+                return
+
+            # Direct response for GET/HEAD /mcp probe (Claude.ai connector verification)
+            if path == "/mcp" and method in ("GET", "HEAD"):
+                body = (
+                    b'{"server":"Joyory Product Catalog MCP","version":"2.0",'
+                    b'"transport":"streamable-http","protocol":"MCP 2.x","auth":"none",'
+                    b'"endpoint":"/mcp","methods":["POST","GET","OPTIONS","HEAD"]}'
+                )
+                headers = [
+                    [b"content-type", b"application/json"],
+                    [b"content-length", str(len(body)).encode()],
+                    [b"access-control-allow-origin", b"*"],
+                ]
+                await send({"type": "http.response.start", "status": 200, "headers": headers})
+                await send({"type": "http.response.body", "body": b"" if method == "HEAD" else body, "more_body": False})
+                return
+
+            # Ensure lifespan is running for MCP POST JSON-RPC requests
             if path == "/mcp" or path.startswith("/mcp/"):
                 await self._ensure_lifespan()
+
             await self.inner_app(scope, receive, send)
             return
 

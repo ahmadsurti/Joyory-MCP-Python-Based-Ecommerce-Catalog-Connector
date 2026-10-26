@@ -231,27 +231,41 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, HTMLResponse
 
 
-@mcp.custom_route("/health", methods=["GET", "HEAD"])
+_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
+    "Access-Control-Allow-Headers": "*",
+}
+
+
+@mcp.custom_route("/health", methods=["GET", "HEAD", "OPTIONS"])
 async def health_endpoint(request: Request):
-    return JSONResponse({
-        "status": "healthy",
-        "service": "Joyory Product Catalog MCP",
-        "version": "2.0",
-        "mcp_endpoint": "/mcp",
-        "transport": "Streamable HTTP (MCP 2.x)",
-    })
+    if request.method == "OPTIONS":
+        return JSONResponse({}, status_code=204, headers=_CORS_HEADERS)
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "service": "Joyory Product Catalog MCP",
+            "version": "2.0",
+            "mcp_endpoint": "/mcp",
+            "transport": "Streamable HTTP (MCP 2.x)",
+        },
+        headers=_CORS_HEADERS,
+    )
 
 
-@mcp.custom_route("/mcp", methods=["GET"])
+@mcp.custom_route("/mcp", methods=["GET", "HEAD", "OPTIONS"])
 async def mcp_probe_endpoint(request: Request):
     """
-    Responds to GET /mcp probes from Claude.ai and other MCP clients.
+    Responds to GET/OPTIONS /mcp probes from Claude.ai and other MCP clients.
 
     The MCP Streamable HTTP transport only handles POST on /mcp.
-    Claude's connector setup wizard does a GET probe to check whether the
+    Claude's connector setup wizard does a GET/OPTIONS probe to check whether the
     server requires auth — a 404 makes it think auth is needed.
     Returning 200 here tells Claude: "server is reachable, no auth required."
     """
+    if request.method == "OPTIONS":
+        return JSONResponse({}, status_code=204, headers=_CORS_HEADERS)
     return JSONResponse(
         {
             "server": "Joyory Product Catalog MCP",
@@ -260,11 +274,11 @@ async def mcp_probe_endpoint(request: Request):
             "protocol": "MCP 2.x",
             "auth": "none",
             "endpoint": "/mcp",
-            "methods": ["POST"],
+            "methods": ["POST", "GET", "OPTIONS", "HEAD"],
             "note": "Send MCP JSON-RPC requests via POST to this endpoint.",
         },
         status_code=200,
-        headers={"Access-Control-Allow-Origin": "*"},
+        headers=_CORS_HEADERS,
     )
 
 

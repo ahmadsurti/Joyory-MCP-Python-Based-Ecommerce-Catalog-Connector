@@ -84,35 +84,52 @@ Add the connector to your `claude_desktop_config.json`:
 ```
 
 ### 3.2 Claude.ai Web & Remote Hosts (Streamable HTTP)
-When deployed to a public URL (or tunneled via Cloudflare/ngrok):
+When deployed to Vercel (or Render):
 * **Transport:** Streamable HTTP
-* **URL:** `https://your-deployment.onrender.com/mcp`
+* **URL:** `https://your-project.vercel.app/mcp` (or `https://your-deployment.onrender.com/mcp`)
+* **Health Check & Monitoring:** `https://your-project.vercel.app/health`
 
 ---
 
-## 4. Production Cloud Deployment (Render)
+## 4. Production Cloud Deployment (Vercel — Recommended)
 
-The codebase is engineered specifically for zero-friction deployment to **Render** Web Services:
+The repository is configured for serverless deployment on **Vercel**:
 
-### 4.1 Render Service Settings
+### 4.1 Deployment Options
+1. **GitHub Integration (Easiest & Automatic CI/CD):**
+   * Push your repository to GitHub.
+   * Go to [vercel.com/new](https://vercel.com/new) and import the repository.
+   * Vercel will automatically detect `vercel.json` and Python runtime via `requirements.txt`.
+   * Click **Deploy**.
+2. **Vercel CLI:**
+   ```bash
+   vercel deploy --prod
+   ```
+
+### 4.2 Endpoints on Vercel
+* **`/mcp`**: The MCP 2.x Streamable HTTP endpoint for AI hosts (Claude, Cursor, ChatGPT, etc.).
+* **`/health`**: Instant JSON health check (`200 OK`) responding in <25ms.
+* **`/`**: Visual status card in browser or JSON health summary for HTTP clients.
+
+### 4.3 UptimeRobot / Monitoring Setup
+* **URL:** `https://your-project.vercel.app/health` (or `https://your-project.vercel.app/`)
+* **Monitoring Type:** HTTP(s) or HEAD
+* **Interval:** 5 minutes (or 15 minutes)
+* **Expected Status:** `200`
+*(Note: Do not point UptimeRobot to `/mcp`, as MCP Streamable HTTP opens a persistent SSE connection for GET requests which will time out standard ping bots).*
+
+---
+
+## 5. Render Deployment (Alternative)
+
+For container-based hosting on Render:
+
+### 5.1 Render Service Settings
 * **Service Type:** Web Service (Python 3)
 * **Environment:** Python
 * **Build Command:** `pip install -e .`
 * **Start Command:** `python server.py`
-* **Health Check Path:** `/mcp`
-
-### 4.2 Automated Port & Host Resolution
-In `src/joyory_mcp/config.py`, the server automatically detects cloud container environments:
-```python
-# Automatically binds to 0.0.0.0 when Render sets PORT or RENDER=true
-MCP_HOST: str = os.getenv("MCP_HOST", "0.0.0.0" if os.getenv("RENDER") or os.getenv("PORT") else "127.0.0.1")
-MCP_PORT: int = int(os.getenv("PORT", os.getenv("MCP_PORT", "8000")))
-```
-*No manual IP configuration is required on Render; the app dynamically adopts Render's assigned port.*
-
----
-
-## 5. Troubleshooting & Operational Diagnostics
+* **Health Check Path:** `/health` (or `/`)
 
 | Symptom | Probable Cause | Corrective Action |
 |---|---|---|

@@ -226,6 +226,66 @@ async def get_offers() -> dict:
     return await _offers()
 
 
+# ── Health & Status Endpoints (for UptimeRobot, monitoring, and browser) ─────
+from starlette.requests import Request
+from starlette.responses import JSONResponse, HTMLResponse
+
+
+@mcp.custom_route("/health", methods=["GET", "HEAD"])
+async def health_endpoint(request: Request):
+    return JSONResponse({
+        "status": "healthy",
+        "service": "Joyory Product Catalog MCP",
+        "version": "2.0",
+        "mcp_endpoint": "/mcp",
+        "transport": "Streamable HTTP (MCP 2.x)",
+    })
+
+
+@mcp.custom_route("/", methods=["GET", "HEAD"])
+async def root_endpoint(request: Request):
+    if "text/html" in request.headers.get("accept", ""):
+        html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joyory MCP Server</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 640px; margin: 40px auto; padding: 24px; background: #090d16; color: #f1f5f9; line-height: 1.6; }
+    .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 16px; padding: 28px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
+    .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 9999px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600; font-size: 13px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; }
+    h1 { margin: 0 0 12px 0; color: #f43f5e; font-size: 26px; }
+    p { margin: 0 0 16px 0; color: #94a3b8; }
+    .grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px; font-size: 14px; margin-top: 20px; border-top: 1px solid #1e293b; padding-top: 20px; }
+    .label { color: #64748b; font-weight: 500; }
+    .value code { background: #1e293b; padding: 2px 8px; border-radius: 6px; font-size: 13px; color: #f43f5e; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="status-badge"><span class="status-dot"></span> System Operational</div>
+    <h1>Joyory Product MCP</h1>
+    <p>Read-only MCP server connected to live Joyory beauty &amp; wellness e-commerce catalog.</p>
+    <div class="grid">
+      <div class="label">MCP Endpoint:</div>
+      <div class="value"><code>/mcp</code></div>
+      <div class="label">Health Check:</div>
+      <div class="value"><code>/health</code></div>
+      <div class="label">Transport:</div>
+      <div class="value">Streamable HTTP (MCP 2.x)</div>
+      <div class="label">Catalog Target:</div>
+      <div class="value"><a href="https://joyory.com" target="_blank" style="color: #38bdf8; text-decoration: none;">joyory.com</a></div>
+    </div>
+  </div>
+</body>
+</html>"""
+        return HTMLResponse(html)
+    return await health_endpoint(request)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def main():

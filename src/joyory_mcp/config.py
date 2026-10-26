@@ -38,21 +38,63 @@ BEAUTY_HEADERS: dict = {
 # Allowed outbound hosts (security: restrict to joyory.com only)
 ALLOWED_HOSTS: set[str] = {"joyory.com", "www.joyory.com", "beauty.joyory.com", "res.cloudinary.com"}
 
-# ── Source config (written by discover_joyory.py) ────────────────────────────
+# Default source config used when config/joyory_source.json cannot be read from disk (e.g. serverless)
+DEFAULT_SOURCE_CONFIG: dict = {
+    "base_url": "https://beauty.joyory.com",
+    "adapter": "api",
+    "search": {
+        "method": "GET",
+        "url": "/api/user/products/all",
+        "query_parameters": {
+            "query": "search",
+            "limit": "limit",
+            "page": "cursor",
+            "min_price": "minPrice",
+            "max_price": "maxPrice",
+            "brand": "brandIds",
+            "category": "categoryIds",
+        },
+    },
+    "product_details": {
+        "method": "GET",
+        "url_template": "/api/user/products/{id}",
+    },
+    "categories": {
+        "method": "GET",
+        "url": "/api/user/categories/tree",
+    },
+    "brands": {
+        "method": "GET",
+        "url": "/api/user/brands",
+    },
+    "reviews": {
+        "method": "GET",
+        "url_template": "/api/reviews/product/{id}",
+        "query_parameters": {"limit": "limit", "page": "page"},
+    },
+    "promotions": {
+        "method": "GET",
+        "url": "/api/user/promotions/active",
+        "query_parameters": {"section": "section"},
+    },
+}
 
-def load_source_config() -> dict | None:
-    """Load joyory_source.json if it exists."""
-    p = Path(SOURCE_CONFIG_PATH)
-    if not p.exists():
-        # Try relative to project root
-        project_root = Path(__file__).parent.parent.parent
-        p = project_root / SOURCE_CONFIG_PATH
-    if p.exists():
-        try:
-            return json.loads(p.read_text(encoding="utf-8"))
-        except Exception:
-            return None
-    return None
+
+def load_source_config() -> dict:
+    """Load joyory_source.json if it exists, otherwise fall back to DEFAULT_SOURCE_CONFIG."""
+    candidates = [
+        Path(SOURCE_CONFIG_PATH),
+        Path(__file__).parent.parent.parent / SOURCE_CONFIG_PATH,
+        Path.cwd() / SOURCE_CONFIG_PATH,
+        Path(__file__).parent.parent / SOURCE_CONFIG_PATH,
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+    return DEFAULT_SOURCE_CONFIG
 
 
 def save_source_config(config: dict) -> None:

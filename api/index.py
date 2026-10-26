@@ -137,6 +137,23 @@ class LifespanEnsuringASGI:
                 await send({"type": "http.response.body", "body": b"", "more_body": False})
                 return
 
+            # Diagnostic endpoint to inspect exact ASGI scope received from Vercel
+            if path in ("/debug", "/api/debug"):
+                hdrs = {k.decode("latin1"): v.decode("latin1") for k, v in scope.get("headers", [])}
+                dbg = {
+                    "original_scope_path": scope.get("path"),
+                    "raw_path": scope.get("raw_path", b"").decode("latin1", errors="ignore"),
+                    "method": method,
+                    "headers": hdrs,
+                }
+                body = json.dumps(dbg, indent=2).encode()
+                await send({"type": "http.response.start", "status": 200, "headers": [
+                    [b"content-type", b"application/json"],
+                    [b"content-length", str(len(body)).encode()],
+                ]})
+                await send({"type": "http.response.body", "body": body, "more_body": False})
+                return
+
             # Direct response for GET/HEAD /mcp probe (Claude.ai connector verification)
             if path == "/mcp" and method in ("GET", "HEAD"):
                 body = (
